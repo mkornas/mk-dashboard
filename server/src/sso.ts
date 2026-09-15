@@ -8,12 +8,12 @@
  * of bouncing to the provider again.
  */
 import { randomBytes } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { createOidc, type MkIdentity, type Oidc, registerOidcRoutes, signValue } from '@mk-kit/auth/server';
 import type { Config } from './config.ts';
-import { isSecure, origin, ssoCookie, ssoSession, type SsoSession } from './auth.ts';
+import { isSecure, origin, ssoAllowList, ssoCookie, ssoSession, type SsoSession } from './auth.ts';
 import type { SignOutResult } from '../../shared/types.ts';
 
 export function ssoEnabled(cfg: Config): boolean {
@@ -21,16 +21,28 @@ export function ssoEnabled(cfg: Config): boolean {
   return !!(cfg.oidcIssuer && cfg.oidcClientId && cfg.oidcClientSecret);
 }
 
-/** DASH_COOKIE_SECRET; else one generated once into the data dir; else a fresh one per start (sign-ins end with a restart). */
+/** `@mk-kit/auth` refuses to sign with a shorter key. */
+const MIN_SECRET_LENGTH = 16;
+
+/**
+ * DASH_COOKIE_SECRET (16 characters or more, else the start fails); else one generated once into the data dir — again
+ * when that file is empty or too short; else a fresh one per start (sign-ins end with a restart).
+ */
 export function cookieSecret(cfg: Config, log: { warn(msg: string): void }): string {
-  if (cfg.cookieSecret) return cfg.cookieSecret;
+  if (cfg.cookieSecret) {
+    if (cfg.cookieSecret.length < MIN_SECRET_LENGTH)
+      throw new Error(`DASH_COOKIE_SECRET is shorter than ${MIN_SECRET_LENGTH} characters — set 32 random bytes (openssl rand -base64 32), or unset it to have one generated`);
+    return cfg.cookieSecret;
+  }
   if (cfg.dataDir) {
     const file = join(cfg.dataDir, 'cookie-secret');
     try {
-      if (existsSync(file)) return readFileSync(file, 'utf8').trim();
+      const kept = existsSync(file) ? readFileSync(file, 'utf8').trim() : '';
+      if (kept.length >= MIN_SECRET_LENGTH) return kept;
       mkdirSync(cfg.dataDir, { recursive: true });
       const secret = randomBytes(32).toString('base64url');
       writeFileSync(file, secret, { mode: 0o600 });
+      chmodSync(file, 0o600); // the mode above only applies to a new file
       return secret;
     } catch (e) {
       log.warn(`could not keep a cookie secret in ${file}: ${(e as Error).message}`);
@@ -138,7 +150,7 @@ export class SsoProvider {
 
 /** Registers `/auth/login`, `/auth/callback` and `POST /api/logout`. */
 export function registerSso(app: FastifyInstance, cfg: Config, secret: string, sso: SsoProvider): void {
-  const allowed = (cfg.oidcEmails.length ? cfg.oidcEmails : cfg.adminEmails).map((e) => e.toLowerCase());
+  const allowed = ssoAllowList(cfg);
   if (!allowed.length) app.log.warn('single sign-on: neither DASH_OIDC_EMAILS nor DASH_ADMIN_EMAILS is set — every sign-in will be refused');
 
   // a login attempt while the provider is still unreachable retries the discovery, and explains itself when that fails too

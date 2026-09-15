@@ -176,6 +176,11 @@ export interface SsoSession {
   idToken?: string;
 }
 
+/** Who may sign in through the provider: DASH_OIDC_EMAILS, else DASH_ADMIN_EMAILS (lower-cased). */
+export function ssoAllowList(cfg: Pick<Config, 'oidcEmails' | 'adminEmails'>): string[] {
+  return (cfg.oidcEmails.length ? cfg.oidcEmails : cfg.adminEmails).map((e) => e.toLowerCase());
+}
+
 /** The SSO session behind a request's cookie, when its signature holds. */
 export function ssoSession(req: FastifyRequest, secret: string): SsoSession | null {
   const s = verifyValue<SsoSession>(secret, cookie(req, SSO_COOKIE));
@@ -193,7 +198,12 @@ export function cookie(req: FastifyRequest, name: string): string | undefined {
   if (!raw) return undefined;
   for (const part of raw.split(';')) {
     const [k, ...v] = part.trim().split('=');
-    if (k === name) return decodeURIComponent(v.join('='));
+    if (k !== name) continue;
+    try {
+      return decodeURIComponent(v.join('='));
+    } catch {
+      return undefined; // a malformed escape reads as no cookie, not as a 500 on every request
+    }
   }
   return undefined;
 }
@@ -214,6 +224,7 @@ export function registerAuth(app: FastifyInstance, cfg: Config, verifier: Access
     return reply.code(code).send({ ok: false, message, ...extra });
   };
   const gated = !!(verifier || ssoSecret);
+  const ssoAllowed = ssoAllowList(cfg);
   const throttle = new LoginThrottle();
 
   app.addHook('onRequest', async (req, reply) => {
@@ -270,10 +281,11 @@ export function registerAuth(app: FastifyInstance, cfg: Config, verifier: Access
         }
       }
     }
-    // 3. a sign-in through the OpenID Connect provider
+    // 3. a sign-in through the OpenID Connect provider, whose email is still on the list (the session is a signed
+    //    cookie with no store behind it, so taking an email off the list is what ends its sessions)
     if (ssoSecret) {
       const s = verifyValue<SsoSession>(ssoSecret, cookie(req, SSO_COOKIE));
-      if (s?.email) {
+      if (s?.email && ssoAllowed.includes(s.email.toLowerCase())) {
         req.identity = { email: s.email, via: 'sso', canAct: canAct(s.email, true) };
         return;
       }

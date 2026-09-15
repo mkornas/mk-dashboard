@@ -113,9 +113,9 @@ same-origin Content-Security-Policy on the app itself.
 | `DASH_ACCESS_TEAM` / `DASH_ACCESS_AUD` | — | Cloudflare Access team (`myteam` or `myteam.cloudflareaccess.com`) and the application's audience tag |
 | `DASH_ADMIN_EMAILS` | — | Comma-separated emails allowed to run actions when behind Access (empty = everyone signed in) |
 | `DASH_OIDC_ISSUER` / `DASH_OIDC_CLIENT_ID` / `DASH_OIDC_CLIENT_SECRET` | — | Single sign-on through an OpenID Connect provider (all three enable it); register `https://<dashboard>/auth/callback` there |
-| `DASH_OIDC_EMAILS` | `DASH_ADMIN_EMAILS` | Emails the provider may sign in with; nobody else gets in |
+| `DASH_OIDC_EMAILS` | `DASH_ADMIN_EMAILS` | Emails the provider may sign in with; nobody else gets in, and an email taken off the list loses its sessions at the next restart |
 | `DASH_OIDC_NAME` | `Single sign-on` | The provider's name in the header badge |
-| `DASH_COOKIE_SECRET` | generated into `DASH_DATA_DIR` | Signs the sign-in cookies |
+| `DASH_COOKIE_SECRET` | generated into `DASH_DATA_DIR` | Signs the sign-in cookies; at least 16 characters (32 random bytes), a shorter one stops the start |
 | `DASH_SESSION_DAYS` | `30` | How long a single sign-on session lasts |
 | `DASH_TRUSTED_CIDRS` | `127.0.0.0/8,::1/128,10.0.0.0/8,192.168.0.0/16` | Networks that need no sign-in (the only way in when nothing else is configured); a proxy on them is believed about the client address (`CF-Connecting-IP`, `X-Forwarded-For`). Set it to `127.0.0.0/8,::1/128` to make everyone sign in |
 | `DASH_NAS_SOCKET` | — | NAS mode on a box running [mk-nas](https://github.com/mkornas/mk-nas): the agent's socket (`/run/mk-nas.sock`, mounted in, the container in the `mk-nas` group). Its health is asked once a minute: a degraded or faulted pool, a pool over 90 %, a disk with failing SMART, or an unreachable agent become alerts, and the NAS page shows what it said |

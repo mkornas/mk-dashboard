@@ -2,12 +2,17 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { config } from '../src/config.ts';
+import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createAccessVerifier, signValue } from '@mk-kit/auth/server';
 import { registerAuth } from '../src/auth.ts';
-import { SsoProvider, registerSso } from '../src/sso.ts';
+import { SsoProvider, cookieSecret, registerSso } from '../src/sso.ts';
 import { provider, roundTrip } from './oidc-provider.ts';
 
 const who: { email: string; name: string; verified?: boolean } = { email: 'Admin@Example.com', name: 'Admin' };
 const quiet = { info() {}, error() {}, warn() {} };
+const SECRET = 'test-cookie-secret-0123456789';
 let idp: FastifyInstance;
 let app: FastifyInstance;
 let cfg: typeof config;
@@ -19,8 +24,8 @@ before(async () => {
   app = Fastify();
   const sso = new SsoProvider(cfg, quiet);
   assert.ok(await sso.connect(), 'discovery works');
-  registerAuth(app, cfg, null, 'test-secret');
-  registerSso(app, cfg, 'test-secret', sso);
+  registerAuth(app, cfg, null, SECRET);
+  registerSso(app, cfg, SECRET, sso);
   app.get('/api/me', async (req) => req.identity);
   app.post('/api/act', async () => ({ ok: true }));
   app.get('/', async () => 'app');
@@ -171,8 +176,8 @@ test('an unreachable provider at start keeps the dashboard gated; a login attemp
   const sso = new SsoProvider(down, quiet);
   assert.equal(await sso.connect(), null);
   assert.equal(sso.ready, false);
-  registerAuth(a, down, null, 'test-secret');
-  registerSso(a, down, 'test-secret', sso);
+  registerAuth(a, down, null, SECRET);
+  registerSso(a, down, SECRET, sso);
   a.get('/api/me', async (req) => req.identity);
   try {
     assert.equal((await a.inject({ url: '/api/me' })).statusCode, 401, 'still gated');
@@ -181,5 +186,69 @@ test('an unreachable provider at start keeps the dashboard gated; a login attemp
     assert.match(reasonOf(login.headers.location), /^Sign-in is unavailable: Example ID at http:\/\/127\.0\.0\.1:1 could not be reached/);
   } finally {
     await a.close();
+  }
+});
+
+test('a session whose email is no longer on the list is refused on its next request', async () => {
+  who.email = 'admin@example.com';
+  const { cookies } = await roundTrip(app, '/', 'dash.test');
+  const session = cookies.find((c) => c.startsWith('dash_session='))!;
+  assert.equal((await app.inject({ url: '/api/me', headers: { cookie: session } })).statusCode, 200);
+  // the same key after a restart with the email taken off DASH_OIDC_EMAILS (and with it falling back to DASH_ADMIN_EMAILS)
+  for (const lists of [{ oidcEmails: ['someone@example.com'] }, { oidcEmails: [], adminEmails: ['someone@example.com'] }, { oidcEmails: [], adminEmails: [] }]) {
+    const a = Fastify();
+    registerAuth(a, { ...cfg, ...lists }, null, SECRET);
+    a.get('/api/me', async (req) => req.identity);
+    try {
+      assert.equal((await a.inject({ url: '/api/me', headers: { cookie: session } })).statusCode, 401, JSON.stringify(lists));
+    } finally {
+      await a.close();
+    }
+  }
+  const fallback = Fastify();
+  registerAuth(fallback, { ...cfg, oidcEmails: [], adminEmails: ['Admin@Example.com'] }, null, SECRET);
+  fallback.get('/api/me', async (req) => req.identity);
+  try {
+    assert.equal((await fallback.inject({ url: '/api/me', headers: { cookie: session } })).json().via, 'sso', 'DASH_ADMIN_EMAILS when DASH_OIDC_EMAILS is empty');
+  } finally {
+    await fallback.close();
+  }
+  const forged = `dash_session=${encodeURIComponent(signValue(SECRET, { email: 'removed@example.com', exp: Date.now() + 60_000 }))}`;
+  assert.equal((await app.inject({ url: '/api/me', headers: { cookie: forged } })).statusCode, 401);
+});
+
+test('a cookie with a malformed percent-escape reads as absent, not as a 500', async () => {
+  const bad = '%E0%A4%A';
+  assert.equal((await app.inject({ url: '/api/me', headers: { cookie: `dash_session=${bad}` } })).statusCode, 401);
+  const a = Fastify();
+  registerAuth(a, { ...cfg, accessAud: 'aud' }, createAccessVerifier({ team: 'example', aud: 'aud' }), SECRET);
+  a.get('/api/me', async (req) => req.identity);
+  try {
+    assert.equal((await a.inject({ url: '/api/me', headers: { cookie: `CF_Authorization=${bad}` } })).statusCode, 401);
+    assert.equal((await a.inject({ url: '/api/me', headers: { cookie: `CF_Authorization=${bad}; dash_session=${bad}` } })).statusCode, 401);
+  } finally {
+    await a.close();
+  }
+});
+
+test('the cookie secret: a short DASH_COOKIE_SECRET stops the start; an empty or short file is generated again, 0600', () => {
+  assert.throws(() => cookieSecret({ ...cfg, cookieSecret: 'short-secret' }, quiet), /DASH_COOKIE_SECRET is shorter than 16 characters/);
+  assert.equal(cookieSecret({ ...cfg, cookieSecret: SECRET }, quiet), SECRET);
+  const dir = mkdtempSync(join(tmpdir(), 'mk-dashboard-secret-'));
+  const file = join(dir, 'cookie-secret');
+  try {
+    const withDir = { ...cfg, cookieSecret: '', dataDir: dir };
+    const first = cookieSecret(withDir, quiet);
+    assert.ok(first.length >= 32);
+    assert.equal(cookieSecret(withDir, quiet), first, 'kept');
+    for (const content of ['', '\n', 'short']) {
+      writeFileSync(file, content, { mode: 0o644 });
+      const secret = cookieSecret(withDir, quiet);
+      assert.ok(secret.length >= 32, JSON.stringify(content));
+      assert.equal(cookieSecret(withDir, quiet), secret, 'kept after the rewrite');
+      assert.equal(statSync(file).mode & 0o777, 0o600);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
