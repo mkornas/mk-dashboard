@@ -1,0 +1,84 @@
+# main → test → ghcr.io/mkornas/mk-dashboard:{latest,<sha>} → an optional deploy hook.
+# Set the DEPLOY_HOOK_URL variable (e.g. watchtower's HTTP API) to ask a server to pull now;
+# without it, or if the hook fails, a server that polls for new images picks it up later.
+name: Deploy
+on:
+  push:
+    branches: [main]
+    # the image is built from shared/, client/ and server/; a board or docs commit must not restart the dashboard
+    paths-ignore:
+      - 'board.md'
+      - 'notes/**'
+      - '*.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'docker-compose.yml'
+  workflow_dispatch:
+# nothing by default; each job asks for what it needs
+permissions: {}
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+env:
+  IMAGE: ghcr.io/mkornas/mk-dashboard
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+        working-directory: server
+      - run: npm run typecheck && npm test
+        working-directory: server
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          push: true
+          build-args: BUILD_SHA=${{ github.sha }}
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Call the deploy hook
+        if: vars.DEPLOY_HOOK_URL != ''
+        env:
+          HOOK: ${{ vars.DEPLOY_HOOK_URL }}
+          TOKEN: ${{ secrets.WATCHTOWER_TOKEN }}
+        run: |
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -m 120 -X POST \
+            -H "Authorization: Bearer $TOKEN" "$HOOK?image=$IMAGE" || true)
+          echo "deploy hook responded $code"
+          [ "$code" = 200 ] || echo "::warning::trigger failed ($code); a periodic pull will pick the image up"

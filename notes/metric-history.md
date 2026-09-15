@@ -1,0 +1,3 @@
+# Metric history
+
+- 2026-09-12 13:50 — Shipped server/src/history.ts (SQLite history.db: per-minute host + per-container-name averages, hourly rollup, 2 d / DASH_HISTORY_DAYS retention), /api/history + /api/history/container, client/src/app/shared/history-range.ts (range select, minute refresh, axis labels) on Overview and container detail. 3 tests with explicit clocks (averaging, rollup, pruning), suite 41/41, client build clean, live run verified a minute row after 75 s. Not deployed. Follow-up idea: store per-minute max next to the average for spikes. — main @ 3521937 Metric history: a stored SQLite history behind a range picker on the charts

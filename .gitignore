@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.angular/
+.idea/
+*.log
+.env
+.DS_Store
+
+# local docker-compose state (DASH_DATA_DIR)
+/data/

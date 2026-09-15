@@ -1,0 +1,66 @@
+# mk-dashboard — run on the host it should watch.
+#   docker compose up -d      → http://<host>:8800
+# Mounts are read-only; only the docker socket allows actions (start/stop/
+# restart/prune). Set DASH_READONLY=true to make it a pure viewer.
+services:
+  mk-dashboard:
+    image: ghcr.io/mkornas/mk-dashboard:latest
+    build: .
+    container_name: mk-dashboard
+    restart: unless-stopped
+    ports:
+      - "8800:8800"
+    environment:
+      TZ: ${TZ:-UTC}
+      DASH_HOSTNAME: ${DASH_HOSTNAME:-}
+      DASH_READONLY: ${DASH_READONLY:-false}
+      DASH_USER: ${DASH_USER:-}
+      DASH_PASSWORD: ${DASH_PASSWORD:-}
+      DASH_BACKUP_DIR: ${DASH_BACKUP_DIR:-/srv/backups}
+      # NAS mode (mk-nas): the agent's socket, mounted below; add the mk-nas gid to group_add
+      DASH_NAS_SOCKET: ${DASH_NAS_SOCKET:-}
+      # NAS mode for a mk-nas box elsewhere: its mk-drive (e.g. http://nas.lan:8810) and the drive's DRIVE_NAS_MONITOR_TOKEN
+      DASH_NAS_URL: ${DASH_NAS_URL:-}
+      DASH_NAS_TOKEN: ${DASH_NAS_TOKEN:-}
+      # SQLite console: where the stacks' databases are (host path[:path in this container]); read-only is enough to browse and snapshot
+      DASH_SQLITE_DIRS: ${DASH_SQLITE_DIRS:-/srv/stacks}
+      # Database files elsewhere: JSON [{ "path", "stack"?, "label"? }], host paths
+      DASH_SQLITE: ${DASH_SQLITE:-}
+      # A console query / the integrity check is killed past this deadline (ms).
+      DASH_SQLITE_QUERY_MS: ${DASH_SQLITE_QUERY_MS:-5000}
+      DASH_SQLITE_INTEGRITY_MS: ${DASH_SQLITE_INTEGRITY_MS:-120000}
+      # SQLite alerts: WAL stuck above N MB for an hour, snapshot older than N hours (0 = off), nightly integrity check at this hour (off = never)
+      DASH_SQLITE_WAL_MB: ${DASH_SQLITE_WAL_MB:-64}
+      DASH_SQLITE_SNAPSHOT_STALE_HOURS: ${DASH_SQLITE_SNAPSHOT_STALE_HOURS:-0}
+      DASH_SQLITE_INTEGRITY_HOUR: ${DASH_SQLITE_INTEGRITY_HOUR:-4}
+      DASH_LINKS: ${DASH_LINKS:-}
+      WATCHTOWER_URL: ${WATCHTOWER_URL:-}
+      WATCHTOWER_TOKEN: ${WATCHTOWER_TOKEN:-}
+      # Event/alert history, the metric history (history.db) and the generated cookie secret + push keys live here.
+      DASH_DATA_DIR: /data
+      # Per-hour metric history kept this many days (per-minute: two days).
+      DASH_HISTORY_DAYS: ${DASH_HISTORY_DAYS:-30}
+      # Who may get in (see README → authentication). Empty = LAN only, everyone on it.
+      DASH_TRUSTED_CIDRS: ${DASH_TRUSTED_CIDRS:-127.0.0.0/8,::1/128,10.0.0.0/8,192.168.0.0/16}
+      DASH_ACCESS_TEAM: ${DASH_ACCESS_TEAM:-}
+      DASH_ACCESS_AUD: ${DASH_ACCESS_AUD:-}
+      DASH_ADMIN_EMAILS: ${DASH_ADMIN_EMAILS:-}
+      # Single sign-on through an OpenID Connect provider (all three enable it).
+      DASH_OIDC_ISSUER: ${DASH_OIDC_ISSUER:-}
+      DASH_OIDC_CLIENT_ID: ${DASH_OIDC_CLIENT_ID:-}
+      DASH_OIDC_CLIENT_SECRET: ${DASH_OIDC_CLIENT_SECRET:-}
+      DASH_OIDC_NAME: ${DASH_OIDC_NAME:-Single sign-on}
+      DASH_OIDC_EMAILS: ${DASH_OIDC_EMAILS:-}
+      DASH_COOKIE_SECRET: ${DASH_COOKIE_SECRET:-}
+    volumes:
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    # Runs as root by default (the docker socket is root-equivalent anyway).
+    # To drop privileges: user: "1000:1000" plus group_add: ["<gid of /var/run/docker.sock>"].
+    deploy:
+      resources:
+        limits:
+          memory: 256m

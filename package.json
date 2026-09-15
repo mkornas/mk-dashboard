@@ -1,0 +1,16 @@
+{
+  "name": "mk-dashboard",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "version": "0.1.0",
+  "description": "Homelab server dashboard: host vitals, docker stacks, logs, backups — built on @mk-kit/ui.",
+  "scripts": {
+    "dev": "npm --prefix server run dev & npm --prefix client start",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client start",
+    "build": "npm --prefix client run build",
+    "test": "npm --prefix server test",
+    "typecheck": "npm --prefix server run typecheck",
+    "postinstall": "npm --prefix server install && npm --prefix client install"
+  }
+}

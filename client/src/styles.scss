@@ -1,0 +1,143 @@
+/* App-level styles. Visual values come from the --mk-* tokens of @mk-kit/ui,
+ * shaped by the kit's "momentum" preset (angular.json loads it; index.html sets
+ * data-mk-preset). The preset names Manrope; we ship it ourselves as the
+ * variable font (Google Fonts would not pass the app's CSP), hence the family override. */
+[data-mk-preset='momentum'] {
+  --mk-font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--mk-bg);
+  color: var(--mk-text);
+  font-family: var(--mk-font-sans);
+}
+
+.page {
+  padding: var(--mk-space-5) var(--mk-space-6) var(--mk-space-8);
+  max-width: 1500px;
+  margin: 0 auto;
+}
+@media (max-width: 640px) {
+  .page {
+    padding: var(--mk-space-4) var(--mk-space-4) var(--mk-space-8);
+  }
+  /* page headers: breathing room, and the actions row becomes a full-width stack */
+  mk-page-header {
+    display: block;
+    margin-bottom: var(--mk-space-4);
+  }
+  .mk-page-header__main {
+    min-width: 0;
+    row-gap: var(--mk-space-3);
+  }
+  .mk-page-header__heading {
+    min-width: 0;
+  }
+  .mk-page-header__title {
+    line-height: 1.2;
+  }
+  .mk-page-header__meta {
+    margin-top: var(--mk-space-2);
+  }
+  .mk-page-header__actions,
+  .mk-page-header__actions > * {
+    width: 100%;
+  }
+  .mk-page-header__actions > .row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--mk-space-2);
+  }
+  .mk-page-header__actions > .row > *:not(.row--inline):not(label) {
+    width: 100%;
+  }
+  .mk-page-header__actions > .row > .row--inline,
+  .mk-page-header__actions > .row > label {
+    align-self: flex-start;
+    width: auto;
+  }
+  .mk-page-header__actions input {
+    min-width: 0;
+    width: 100%;
+  }
+  /* stat cards: two per row, sparklines make way for the value */
+  .grid.grid--stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mk-stat-card__icon mk-sparkline {
+    display: none;
+  }
+  .grid.grid--cards {
+    grid-template-columns: 1fr;
+  }
+  .mono {
+    overflow-wrap: anywhere;
+  }
+  .mk-description-list__term {
+    min-width: 0;
+  }
+}
+
+.grid {
+  display: grid;
+  gap: var(--mk-space-4);
+}
+.grid--stats {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.grid--cards {
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+}
+.grid--2 {
+  grid-template-columns: 2fr 1fr;
+}
+@media (max-width: 900px) {
+  .grid--2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.muted {
+  color: var(--mk-text-muted);
+}
+.mono {
+  font-family: var(--mk-font-mono);
+  font-size: 0.92em;
+}
+.nowrap {
+  white-space: nowrap;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+  flex-wrap: wrap;
+}
+.section-title {
+  font-size: var(--mk-font-size-sm);
+  font-weight: var(--mk-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mk-text-muted);
+  margin: var(--mk-space-6) 0 var(--mk-space-3);
+}
+.grid > * {
+  min-width: 0;
+}
+a.plain {
+  color: inherit;
+  text-decoration: none;
+}
+a.plain:hover {
+  text-decoration: underline;
+}
+/* @mk-kit/ui charts hide their data table with a 1px box, but a <table> ignores
+ * height: with 240 points it ran ~5000px past the page and left a long empty scroll.
+ * As a block the 1px box holds. */
+.mk-chart__sr-table {
+  display: block;
+}
