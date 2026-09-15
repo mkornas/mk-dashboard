@@ -134,12 +134,14 @@ test("readNasOverHttp: the drive's monitor route with the token, and why not whe
     status = 503;
     assert.equal((await readNasOverHttp(base, TOKEN)).error, "the NAS agent is not running", "the drive's own reason");
   } finally {
-    // close() leaves fetch's keep-alive socket open; a request on it would fail as a reset instead of a refusal
-    const closed = new Promise<void>((r) => server.close(() => r()));
-    server.closeAllConnections();
-    await closed;
+    server.close();
   }
-  const gone = await readNasOverHttp(base, TOKEN);
+  // a port that was free a moment ago and never connected to: fetch has no pooled socket for it, so this is a refusal
+  const probe = createServer();
+  await new Promise<void>((r) => probe.listen(0, "127.0.0.1", () => r()));
+  const freePort = (probe.address() as AddressInfo).port;
+  await new Promise<void>((r) => probe.close(() => r()));
+  const gone = await readNasOverHttp(`http://127.0.0.1:${freePort}/`, TOKEN);
   assert.equal(gone.reachable, false);
   assert.match(gone.error ?? "", /refused the connection/);
 });
