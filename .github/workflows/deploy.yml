@@ -1,5 +1,5 @@
 # main → test → ghcr.io/mkornas/mk-dashboard:{latest,<sha>} → an optional deploy hook.
-# Set the DEPLOY_HOOK_URL variable (e.g. watchtower's HTTP API) to ask a server to pull now;
+# Set the DEPLOY_HOOK_URL secret (e.g. watchtower's HTTP API) to ask a server to pull now;
 # without it, or if the hook fails, a server that polls for new images picks it up later.
 name: Deploy
 on:
@@ -73,12 +73,14 @@ jobs:
     permissions: {}
     steps:
       - name: Call the deploy hook
-        if: vars.DEPLOY_HOOK_URL != ''
+        # the URL is a secret, not a variable: a public repository's logs show a step's variables, and it names the server
         env:
-          HOOK: ${{ vars.DEPLOY_HOOK_URL }}
+          HOOK: ${{ secrets.DEPLOY_HOOK_URL }}
           TOKEN: ${{ secrets.WATCHTOWER_TOKEN }}
         run: |
-          code=$(curl -sS -o /dev/null -w '%{http_code}' -m 120 -X POST \
+          [ -n "$HOOK" ] || { echo "no DEPLOY_HOOK_URL secret: nothing to call"; exit 0; }
+          # -s without -S: curl's own error would print the host
+          code=$(curl -s -o /dev/null -w '%{http_code}' -m 120 -X POST \
             -H "Authorization: Bearer $TOKEN" "$HOOK?image=$IMAGE" || true)
           echo "deploy hook responded $code"
           [ "$code" = 200 ] || echo "::warning::trigger failed ($code); a periodic pull will pick the image up"
