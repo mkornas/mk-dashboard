@@ -134,7 +134,10 @@ test("readNasOverHttp: the drive's monitor route with the token, and why not whe
     status = 503;
     assert.equal((await readNasOverHttp(base, TOKEN)).error, "the NAS agent is not running", "the drive's own reason");
   } finally {
-    server.close();
+    // close() leaves fetch's keep-alive socket open; a request on it would fail as a reset instead of a refusal
+    const closed = new Promise<void>((r) => server.close(() => r()));
+    server.closeAllConnections();
+    await closed;
   }
   const gone = await readNasOverHttp(base, TOKEN);
   assert.equal(gone.reachable, false);
