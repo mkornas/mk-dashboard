@@ -6,7 +6,9 @@ who should not be able to, is a serious bug — please report it privately.
 
 ## Reporting
 
-Write to **hi@mateuszkornas.com** with what you found and how to reproduce it.
+Use **[Report a vulnerability](https://github.com/mkornas/mk-dashboard/security/advisories/new)**
+on the repository's Security tab, or write to **hi@mateuszkornas.com**, with
+what you found and how to reproduce it.
 Please do not open a public issue for a vulnerability. You will get an answer
 within a few days; this is a one-person project, so a fix may take a little
 longer than that, and you will be told when it ships. Credit in the release
