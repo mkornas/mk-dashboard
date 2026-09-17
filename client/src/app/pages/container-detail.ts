@@ -261,6 +261,8 @@ const MAX_LOG_LINES = 5000;
         cursor: pointer;
       }
       .head {
+        // the card header is a flex row: without this the title gets no width and wraps under the picker
+        flex: 1;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -268,6 +270,7 @@ const MAX_LOG_LINES = 5000;
       }
       .range {
         flex: 0 0 auto;
+        width: 10rem;
       }
       .tail {
         width: 130px;

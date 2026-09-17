@@ -203,6 +203,8 @@ function chipLabel(chip: string): string {
         font-weight: var(--mk-font-weight-semibold);
       }
       .head {
+        // the card header is a flex row: without this the title gets no width and wraps under the picker
+        flex: 1;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -210,6 +212,7 @@ function chipLabel(chip: string): string {
       }
       .range {
         flex: 0 0 auto;
+        width: 10rem;
       }
       .charts {
         margin-top: var(--mk-space-4);
