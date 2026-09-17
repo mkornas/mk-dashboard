@@ -11,7 +11,7 @@ on:
       - 'notes/**'
       - 'docs/**'
       - 'tools/**'
-      - '*.md'
+      - '**/*.md'
       - 'LICENSE'
       - '.gitignore'
       - 'docker-compose.yml'
