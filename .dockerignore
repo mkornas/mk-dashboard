@@ -7,3 +7,5 @@
 .idea
 *.md
 !README.md
+docs
+tools

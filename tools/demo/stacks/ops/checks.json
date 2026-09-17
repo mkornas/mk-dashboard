@@ -1,0 +1,10 @@
+[
+  { "name": "Gitea", "url": "http://gitea:3000/", "group": "Apps" },
+  { "name": "Vaultwarden", "url": "http://vaultwarden/alive", "group": "Apps" },
+  { "name": "Miniflux", "url": "http://miniflux:8080/healthcheck", "group": "Apps" },
+  { "name": "AdGuard", "url": "http://adguard:3000/", "group": "Apps" },
+  { "name": "Traefik", "host": "traefik", "port": 80, "group": "Apps" },
+  { "name": "Upstream DNS", "host": "1.1.1.1", "port": 853, "tls": true, "servername": "one.one.one.one", "group": "Outside" },
+  { "name": "example.com", "url": "https://example.com/", "group": "Outside" },
+  { "name": "Offsite backup target", "host": "192.0.2.10", "port": 22, "group": "Outside" }
+]

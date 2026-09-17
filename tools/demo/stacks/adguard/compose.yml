@@ -1,0 +1,13 @@
+services:
+  adguard:
+    image: adguard/adguardhome:v0.107.65
+    container_name: adguard
+    restart: unless-stopped
+    ports: ["3001:3000"]
+    volumes: ["./work:/opt/adguardhome/work", "./conf:/opt/adguardhome/conf"]
+    networks: [proxy]
+    labels:
+      - mk-dashboard.url=https://dns.home.example
+      - mk-dashboard.description=DNS filtering
+networks:
+  proxy: { external: true }

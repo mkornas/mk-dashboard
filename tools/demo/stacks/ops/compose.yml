@@ -1,0 +1,39 @@
+services:
+  watchtower:
+    image: containrrr/watchtower:1.7.1
+    container_name: watchtower
+    restart: unless-stopped
+    environment:
+      WATCHTOWER_HTTP_API_UPDATE: "true"
+      WATCHTOWER_HTTP_API_TOKEN: demo
+      DOCKER_API_VERSION: "1.44"
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    networks: [proxy]
+  mk-dashboard:
+    image: mk-dashboard:demo
+    container_name: mk-dashboard
+    restart: unless-stopped
+    ports: ["8800:8800"]
+    environment:
+      DASH_HOSTNAME: homelab
+      DASH_DATA_DIR: /data
+      # the browser arrives from the outer docker bridge
+      DASH_TRUSTED_CIDRS: 127.0.0.0/8,172.16.0.0/12
+      # the bind mounts docker gives the outer container are the dev box's disk, not the demo's
+      DASH_IGNORE_MOUNTS: /etc,/var/lib/docker
+      DASH_AUTO_CHECKS: "false"
+      DASH_CHECKS_FILE: /checks.json
+      WATCHTOWER_URL: http://watchtower:8080
+      WATCHTOWER_TOKEN: demo
+    volumes:
+      - ./data:/data
+      - ./checks.json:/checks.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    networks: [proxy]
+    labels:
+      - mk-dashboard.description=This page
+networks:
+  proxy: { external: true }

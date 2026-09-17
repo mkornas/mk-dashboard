@@ -1,0 +1,29 @@
+services:
+  miniflux:
+    image: miniflux/miniflux:2.2.13
+    container_name: miniflux
+    restart: unless-stopped
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      DATABASE_URL: postgres://miniflux:demo@db/miniflux?sslmode=disable
+      RUN_MIGRATIONS: "1"
+      CREATE_ADMIN: "1"
+      ADMIN_USERNAME: demo
+      ADMIN_PASSWORD: demo-demo-demo
+    networks: [default, proxy]
+    healthcheck: { test: ["CMD", "/usr/bin/miniflux", "-healthcheck", "auto"], interval: 15s }
+    labels:
+      - mk-dashboard.url=https://feeds.home.example
+      - mk-dashboard.description=Feed reader
+  db:
+    image: postgres:17-alpine
+    container_name: miniflux-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: miniflux
+      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: miniflux
+    volumes: ["./db:/var/lib/postgresql/data"]
+    healthcheck: { test: ["CMD", "pg_isready", "-U", "miniflux"], interval: 10s }
+networks:
+  proxy: { external: true }

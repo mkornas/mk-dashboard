@@ -9,6 +9,8 @@ on:
     paths-ignore:
       - 'board.md'
       - 'notes/**'
+      - 'docs/**'
+      - 'tools/**'
       - '*.md'
       - 'LICENSE'
       - '.gitignore'

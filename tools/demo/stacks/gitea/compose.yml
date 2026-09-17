@@ -1,0 +1,18 @@
+services:
+  gitea:
+    image: gitea/gitea:1.24
+    container_name: gitea
+    restart: unless-stopped
+    environment:
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__server__ROOT_URL: https://git.home.example/
+    ports: ["3000:3000", "2222:22"]
+    volumes: ["./data:/data"]
+    networks: [proxy]
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/healthz"], interval: 15s }
+    labels:
+      - mk-dashboard.url=https://git.home.example
+      - mk-dashboard.description=Git hosting
+networks:
+  proxy: { external: true }

@@ -1,0 +1,19 @@
+services:
+  traefik:
+    image: traefik:v3.5
+    container_name: traefik
+    restart: unless-stopped
+    command: ["--providers.docker=true", "--providers.docker.exposedbydefault=false", "--entrypoints.web.address=:80", "--ping=true"]
+    ports: ["80:80"]
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock:ro"]
+    networks: [proxy]
+    healthcheck: { test: ["CMD", "traefik", "healthcheck", "--ping"], interval: 15s }
+    labels:
+      - mk-dashboard.description=Reverse proxy
+  whoami:
+    image: traefik/whoami:v1.11
+    container_name: whoami
+    restart: unless-stopped
+    networks: [proxy]
+networks:
+  proxy: { name: proxy }

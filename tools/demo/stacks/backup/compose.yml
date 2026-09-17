@@ -1,0 +1,21 @@
+# Writes what the Backups page reads: one archive per app every ten minutes, a line in the log, the last five kept.
+services:
+  backup:
+    image: alpine:3.22
+    container_name: backup
+    restart: unless-stopped
+    volumes: ["/srv/stacks:/stacks:ro", "/srv/backups:/backups"]
+    command:
+      - sh
+      - -c
+      - |
+        while :; do
+          for app in gitea vaultwarden miniflux adguard; do
+            mkdir -p /backups/$$app
+            f=/backups/$$app/$$app-$$(date +%F-%H%M).tar.gz
+            tar czf $$f -C /stacks $$app 2>/dev/null
+            echo "$$(date -u +%FT%TZ) $$app: ok $$(du -h $$f | cut -f1)" >> /backups/backup.log
+            ls -t /backups/$$app/*.tar.gz | tail -n +6 | xargs -r rm
+          done
+          sleep 600
+        done

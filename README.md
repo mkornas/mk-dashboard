@@ -4,6 +4,20 @@ A small, self-hosted dashboard for a single Docker host — the kind of box
 that runs a handful of `docker compose` stacks. One container, no database,
 nothing to configure beyond a few mounts.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/overview-dark.png">
+  <img alt="The overview: host vitals, live chart, disks and sensors, checks, every stack with its containers" src="docs/screenshots/overview-light.png">
+</picture>
+
+| | |
+| --- | --- |
+| ![Container detail: live resources, health-check history, configuration](docs/screenshots/container-dark.png) | ![Network: reachability checks with latency and certificate expiry](docs/screenshots/network-dark.png) |
+| ![Databases: a SQLite file's tables and rows](docs/screenshots/database-dark.png) | ![Backups: freshness per app and the log tail](docs/screenshots/backups-dark.png) |
+
+The screenshots are of a pretend homelab, not a real one: [`tools/demo/up.sh`](tools/demo/up.sh)
+starts it (docker-in-docker, a few small apps as compose stacks, the dashboard built from
+the checkout) — also the quickest way to try the dashboard without pointing it at anything of yours.
+
 - **Host vitals** — CPU (per core), memory, swap, load, uptime, disks, network
   rates, temperatures (hwmon), pending reboot. Live, over server-sent events,
   and a stored history behind the charts' range picker: per minute for a day,
