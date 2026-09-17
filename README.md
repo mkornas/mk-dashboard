@@ -207,6 +207,10 @@ npm test                      # server unit tests (node --test)
 Layout: `server/` (Fastify, TypeScript run directly by Node 24), `client/`
 (Angular), `shared/types.ts` (the API contract both sides import).
 
+## Security
+
+Found a way in? See [SECURITY.md](SECURITY.md) — please report it privately.
+
 ## License
 
 AGPL-3.0-only — see LICENSE. © 2026 Mateusz Kornaś. A commercial license (use without the AGPL's obligations) is available: hi@mateuszkornas.com.
