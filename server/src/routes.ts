@@ -122,6 +122,7 @@ export function registerRoutes(
       cfg.oidcIssuer && cfg.oidcClientId && cfg.oidcClientSecret
         ? { name: cfg.oidcName }
         : undefined,
+    appsUrl: cfg.appsUrl || undefined,
   }));
 
   app.get("/api/overview", async (): Promise<Overview> => {

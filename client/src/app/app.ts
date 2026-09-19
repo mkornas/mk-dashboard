@@ -7,7 +7,7 @@ import { MkButton } from '@mk-kit/ui/button';
 import { MkIcon } from '@mk-kit/ui/icon';
 import { MkBadge, MkEmptyState } from '@mk-kit/ui/status';
 import { MkToastContainer, MkTooltip } from '@mk-kit/ui/feedback';
-import { MkAppShell, MkNavItem, MkNavList } from '@mk-kit/ui/navigation';
+import { MkAppShell, MkAppSwitcher, MkNavItem, MkNavList } from '@mk-kit/ui/navigation';
 import { LiveService } from './core/live.service';
 import { PushService } from './core/push.service';
 import { MkToastService } from '@mk-kit/ui/feedback';
@@ -30,11 +30,14 @@ const NAV: NavLink[] = [
   { label: 'System', path: '/system', icon: 'server' },
 ];
 
-/** The frame: header with live status and theme toggle, sidebar navigation. */
+/** This app's id in the suite's app registry (DASH_APPS_URL), so the switcher marks it as current. */
+const APP_ID = 'dash';
+
+/** The frame: header with live status, theme toggle and the suite's app switcher, sidebar navigation. */
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, MkAppShell, MkNavList, MkNavItem, MkButton, MkIcon, MkBadge, MkEmptyState, MkToastContainer, MkTooltip],
+  imports: [RouterOutlet, MkAppShell, MkAppSwitcher, MkNavList, MkNavItem, MkButton, MkIcon, MkBadge, MkEmptyState, MkToastContainer, MkTooltip],
   template: `
     <mk-app-shell #shell [(sidebarCollapsed)]="collapsed">
       <div mkAppHeader class="hdr">
@@ -76,6 +79,9 @@ const NAV: NavLink[] = [
         <button mkButton variant="ghost" iconOnly [attr.aria-label]="theme.isDark() ? 'Switch to light theme' : 'Switch to dark theme'" (click)="theme.toggle()">
           <mk-icon [name]="theme.isDark() ? 'sun' : 'moon'" />
         </button>
+        @if (live.meta()?.appsUrl; as appsUrl) {
+          <mk-app-switcher [src]="appsUrl" [current]="appId" />
+        }
       </div>
 
       <mk-nav-list mkAppSidebar [collapsed]="collapsed()">
@@ -185,6 +191,7 @@ export class App {
   protected readonly theme = inject(MkThemeService);
   private readonly router = inject(Router);
   protected readonly nav = NAV;
+  protected readonly appId = APP_ID;
   protected readonly collapsed = signal(false);
 
   private readonly url = toSignal(

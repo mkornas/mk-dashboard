@@ -19,6 +19,8 @@ export interface Meta {
   historyPoints: number;
   /** Single sign-on is configured (the provider's display name). */
   sso?: { name: string };
+  /** The suite's app registry (DASH_APPS_URL); the header shows an app switcher when set. */
+  appsUrl?: string;
 }
 
 export interface HostInfo {

@@ -13,6 +13,8 @@ services:
     environment:
       TZ: ${TZ:-UTC}
       DASH_HOSTNAME: ${DASH_HOSTNAME:-}
+      # The suite's app registry (apps.json); set → an app switcher in the header
+      DASH_APPS_URL: ${DASH_APPS_URL:-}
       DASH_READONLY: ${DASH_READONLY:-false}
       DASH_USER: ${DASH_USER:-}
       DASH_PASSWORD: ${DASH_PASSWORD:-}
