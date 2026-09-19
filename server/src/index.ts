@@ -21,14 +21,14 @@ import { SqliteConsole } from './sqlite.ts';
 import { registerSqliteRoutes } from './sqlite-routes.ts';
 import { SqliteMonitor } from './sqlite-monitor.ts';
 
-/** What the browser may load for the app: only itself (inline styles are Angular's component styles). */
+/** What the browser may load for the app: only itself (inline styles are Angular's component styles), plus the app registry the header's switcher fetches. */
 const APP_CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  `connect-src 'self'${config.appsUrl ? ` ${new URL(config.appsUrl).origin}` : ''}`,
   "frame-ancestors 'self'",
   "object-src 'none'",
   "base-uri 'self'",

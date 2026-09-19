@@ -53,6 +53,8 @@ export const config = {
   hostRoot: env('HOST_ROOT', '/'),
   /** Hostname override (inside a container os.hostname() is the container id). */
   hostName: env('DASH_HOSTNAME', ''),
+  /** The suite's app registry (JSON) behind the header's app switcher; empty = no switcher. */
+  appsUrl: parseAppsUrl(env('DASH_APPS_URL', '')),
   /** NAS mode: the mk-nas agent's socket mounted in; its health becomes alerts and a page. Empty = off. */
   nasSocket: env('DASH_NAS_SOCKET', ''),
   /** NAS mode for a NAS on another box: the mk-drive there (its monitor route) and the token it was given. Wins over the socket. */
@@ -187,6 +189,19 @@ function parseSqliteList(raw: string): SqliteEntry[] {
     console.warn(`DASH_SQLITE is not valid JSON: ${(e as Error).message}`);
     return [];
   }
+}
+
+/** An absolute http(s) URL, so its origin can be allowed in the app's CSP. */
+function parseAppsUrl(raw: string): string {
+  if (!raw) return '';
+  try {
+    const u = new URL(raw);
+    if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+  } catch {
+    // reported below
+  }
+  console.warn(`DASH_APPS_URL ${raw} is not an http(s) URL; ignoring`);
+  return '';
 }
 
 function parseHour(raw: string): number | null {

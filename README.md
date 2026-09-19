@@ -122,6 +122,7 @@ same-origin Content-Security-Policy on the app itself.
 | --- | --- | --- |
 | `PORT` | `8800` | Listen port |
 | `DASH_HOSTNAME` | host's `/proc/sys/kernel/hostname` | Name shown in the header |
+| `DASH_APPS_URL` | — | The suite's app registry (`https://home.example.com/apps.json`, a JSON array or `{ apps }` of `{ id, name, url }`): the header gets an app switcher listing the other apps, this one is `dash`. The registry's origin is allowed in the app's Content-Security-Policy |
 | `DASH_READONLY` | `false` | Hide and refuse every action |
 | `DASH_USER` / `DASH_PASSWORD` | — | Enable HTTP basic auth when both are set |
 | `DASH_ACCESS_TEAM` / `DASH_ACCESS_AUD` | — | Cloudflare Access team (`myteam` or `myteam.cloudflareaccess.com`) and the application's audience tag |
